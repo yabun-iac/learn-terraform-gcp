@@ -50,5 +50,5 @@ jobs:
               run: terraform plan -no-color
               working-directory: terraform
 
-            - run: terraform destroy -auto-approve
+            - run: terraform apply -auto-approve
               working-directory: terraform
