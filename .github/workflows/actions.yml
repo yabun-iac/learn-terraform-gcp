@@ -1,0 +1,55 @@
+name: Create Bucket Terraform
+
+on: [push]
+
+jobs:
+
+    testing-action:
+
+        runs-on: ubuntu-latest
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.GCP_TOKEN }}
+        steps:
+            # checkout code
+            - uses: actions/checkout@v3
+
+            # docker build (inside working directory -> my-angular-app)
+            - name: Build docker image
+              run: docker build -t my-angular-app-terraform:latest .
+
+
+            # auth GCP
+            - name: "auth GCP"
+              uses: "google-github-actions/auth@v1"
+              with:
+                credentials_json: "${{ secrets.GCP_TOKEN }}"
+
+            # setup gcloud cli
+            - name: "setup GCP"
+              uses: "google-github-actions/setup-gcloud@v1"
+
+            # configure gcr.io
+            - name: "configure gcr.io"
+              run: gcloud auth configure-docker gcr.io
+
+            # push image GCR
+            - name: "push image in registry"
+              run: |
+                docker tag my-angular-app-terraform:latest gcr.io/udemyiactraining/my-angular-app-terraform:latest
+                docker push gcr.io/udemyiactraining/my-angular-app-terraform:latest
+
+            # setup Terraform
+            - uses: hashicorp/setup-terraform@v2
+              with:
+                cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+            - run: terraform init
+              working-directory: terraform
+
+            - id: plan
+              run: terraform plan -no-color
+              working-directory: terraform
+
+            - run: terraform destroy -auto-approve
+              working-directory: terraform
+
